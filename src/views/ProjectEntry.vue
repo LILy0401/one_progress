@@ -122,6 +122,7 @@ export default {
     },
     projectList() {
       this.$ajax.get(`/projectList?cid=${this.cid}`).then(res => {
+        console.log(res);
         this.list = res.data.results.map(item => {
           item.create_time = new Date(item.create_time * 1).toLocaleString();
           return item;
@@ -131,6 +132,7 @@ export default {
     createPro() {
       this.flag = !this.flag;
       if (this.proName && this.proMS) {
+        console.log(this.proMS)
         this.$ajax
           .post("/createProject", {
             project_name: this.proName,
