@@ -5,9 +5,13 @@
       </div>
       <div class="content_box">
         <p class="con_box_p">注册</p>
-        <p class="con_box_mes"> <input type="text" placeholder="用户名" v-model="user_name"></p>
-        <p class="con_box_mes"> <input type="text" placeholder="密码" v-model="user_pwd"></p>
-      
+        <p class="con_box_mes"> <input type="text" placeholder="用户名" v-validator="name" v-model="user_name"></p>
+        <p class="con_box_mes"> <input type="password" placeholder="密码" v-validator="pwd" v-model="user_pwd"></p>
+        <p class="con_box_mes"> <input type="text" placeholder="用户昵称"  v-validator="nick" v-model="nickname"></p>
+        <p class="con_box_mes"> <input type="text" placeholder="身份" v-validator="person" v-model="role"></p>
+        <p class="con_box_mes"> <input type="text" placeholder="手机号" v-validator="phones" v-model="phone"></p>
+        <p class="con_box_mes"> <input type="text" placeholder="性别" v-validator='genderreg' v-model="gender"></p>
+        
         <p class="con_box_btn">
           <button @click='zuce'>注册</button>
         </p>
@@ -16,46 +20,58 @@
 </template>
 
 <script>
-import { setTimeout } from 'timers';
+
 // @ is an alias to /src
 
 export default {
   data(){
     return{
+      name:{con:/[\u4E00-\u9FA5]*\w{4,}/,hint:'大于4位的字母或者中文或者数字组成'},
+      pwd:{con:/\w{6,}/,hint:'长度必须大于六'},
+      nick:{con:/^\w{4,}$/,hint:'用户昵称格式不正确'},
+      person:{con:/[组长|组员]$/,hint:'必须是组长或组员'},
+      phones:{con:/^1[3-8]\d{9}$/,hint:'请输入你真实的手机号,ok？'},
+      genderreg:{con:/^[男|女]$/,hint:'这也能填错,怀疑..'},
       user_name:'',
-      user_pwd:''
+      user_pwd:'',
+      nickname:'',
+      phone:'',
+      role:'',
+      gender:''
     }
   },
   components: {
-  
+    
   },
   methods:{
     zuce(){
-      
-      if(this.user_name && this.user_pwd){
+     
+      if(this.user_name && this.user_pwd &&this.nickname && this.phone &&this.gender &&this.role){
          this.$http.post('/register',{
             user_pwd:this.user_pwd,
             user_name:this.user_name,
+            nickname:this.nickname,
+            phone:this.phone,
+            role:this.role,
+            gender:this.gender,
             headers:{
               'content-type':'application/json'
             }
           }).then(res=>{
-            console.log(res);
+        
               if(res.code == 1){
-                this.$message('注册成功');
+               this.$dialog({title:'注册成功'})
                 setTimeout(()=>{
                   this.$router.push('/');
                 },1000)
                 
               }else{
-                this.$message('注册失败')
+                this.$dialog({title:'注册失败'})
+                
               }
           })
-       
-       
       }else{
-
-         this.$message('请填写全部信息') 
+          this.$dialog({title:'请填写全部信息'})
       }
     }
   }
@@ -75,7 +91,7 @@ export default {
 }
 .content_box{
   width: 355px;
-  height: 370px;
+  height: auto;
   background: #fff;
   position: absolute;
   top: 50%;
@@ -139,6 +155,7 @@ export default {
     width: 80%;
     height: 35px;
     border: none;
+    margin-bottom: 10px;
     background: #009788;
     color: #fff;
     font-size: 19px;

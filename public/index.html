@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <link href="assets/css/bootstrap-responsive.css" rel="stylesheet">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico" />
     <title>hang</title>
     <!-- <script src="https://cdn.jsdelivr.net/npm/vue"></script>
@@ -13,7 +14,28 @@
     <script src="https://cdn.bootcss.com/axios/0.19.0-beta.1/axios.min.js"></script>
     <script src="https://cdn.bootcss.com/element-ui/2.8.2/index.js"></script>
     <link href="https://cdn.bootcss.com/element-ui/2.8.2/theme-chalk/index.css" rel="stylesheet"></link> -->
-</head>
+      <script>
+        (function (doc, win) {
+    var docEl = doc.documentElement,
+        resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize',
+        recalc = function () {
+            var clientWidth = docEl.clientWidth;
+            if (!clientWidth) return;
+            if (clientWidth >= 640) {
+                docEl.style.fontSize = '100px';
+            } else {
+                docEl.style.fontSize = 100 * (clientWidth / 750) + 'px';
+                //直接输入设计图大小即可
+            }
+        };
+    if (!doc.addEventListener) return;
+    win.addEventListener(resizeEvt, recalc, false);
+    recalc()
+    doc.addEventListener('DOMContentLoaded', recalc, false);
+    /*DOMContentLoaded文档加载完成不包含图片资源 onload包含图片资源*/
+})(document, window);
+      </script>
+  </head>
 
 <body>
     <noscript>

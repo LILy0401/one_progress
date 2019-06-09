@@ -13,15 +13,15 @@
           <b>{{item.team_name}}</b>
         </p>
         <p class="rightGroup">
-          <!-- <el-slider v-model="sliderVal"></el-slider> -->
+  
           <Process :step="'50%'"></Process>
           <span @click.stop="delGroup(item.team_id)">删除</span>
           <span>编辑</span>
         </p>
       </div>
       <Dialog v-show="flag">
-          <!-- v-if v-show -->
-          <h3>添加小组</h3>
+  
+          <span>添加小组</span>
           <div class="input">
             <input type="text" placeholder="请输入小组名称" v-model="groName">
             <textarea name="" id="" cols="30" rows="10" placeholder="小组项目仓库地址" v-model="groMS"></textarea>
@@ -31,11 +31,9 @@
             <p @click="showDialog">取消</p>
           </div>
         </Dialog>
-      <createBtn :createBtn="createBtn" :flag="flag" @showDialog="showDialog"></createBtn>
+      <createBtn :createBtn="createBtn" :flag="flag" @showDialog="showDialog" v-show="groupisShow"></createBtn>
     </section>
-    <footer>
-      <el-input v-model="search" placeholder="搜索"></el-input>
-    </footer>
+  
   </div>
 </template>
 
@@ -44,7 +42,6 @@ import Process from "../components/process.vue";
 import createBtn from "../components/createBtn.vue";
 import Dialog from "../components/dialog.vue";
 export default {
-  name: "GroupList",
   components: {
     Process,
     createBtn,
@@ -54,6 +51,7 @@ export default {
     return {
       tit: "小组名称",
       createBtn: "添加小组",
+      groupisShow:false,
       search: "",
       sliderVal: 0,
       flag: false,
@@ -64,48 +62,75 @@ export default {
     };
   },
   created() {
-    console.log(this.$route.query.pid)
     this.getGro();
-    //原生解析
-    // this.pid =  window.location.hash.split("?")[1].split("=")[1];
-    // console.log(this.pid)
+    this.getRole();
   },
   methods: {
+    getRole(){
+        let role = localStorage.getItem('role');
+        if(role == 1){
+          this.groupisShow = true;
+        }else{
+          this.groupisShow = false;
+        }
+    },
     showDialog(val) {
       this.flag = !val;
     },
     GroupMember(tid) {
-      this.$router.push(`/GroupMember?tid=${tid}&pid=${this.$route.query.pid}`);
+      let sid = localStorage.getItem('sid');
+      if(sid){
+        localStorage.setItem(sid,tid);
+      }
+      this.$router.push(`/GroupMember?tid=${tid}&project_id=${this.$route.query.project_id}`);
     },
     createGro() {
       this.flag = !this.flag;
       if (this.groName && this.groMS) {
-        this.$ajax
-          .get(
-            `/createTeam?teamName=${this.groName}&gitAddr=${this.groMS}&pid=${
-              this.$route.query.pid
-            }`
-          )
+        this.$http.post('/createTeam',{
+          teamName:this.groName,
+          gitAddr:this.groMS,
+          pid:this.$route.query.project_id,
+        }).then(res=>{
+        
+           if(res.code == 1){
+             this.$dialog({title:'添加成功'})
+             
+           }else{
+             this.$dialog({title:'添加失败'})
+           }
+        })
         this.groName = "";
         this.groMS = "";
         this.getGro();
       } else {
-        alert("请检查小组名称及小组描述是否填写");
+         this.$dialog({title:'请检查小组名称及小组描述是否填写'})
+    
       }
     },
     getGro() {
-      this.$ajax.get(`/teamlist?pid=${this.$route.query.pid}`).then(res => {
-        this.listGro = res.data.results;
+      this.$http.get(`/teamlist?pid=${this.$route.query.project_id}`).then(res => {
+        
+        this.listGro = res.results;
       });
     },
     delGroup(tid){
-      this.$ajax.get(`/deleteTeam?team_id=${tid}`);
-      this.getGro()
+
+      this.$http.get(`/deleteTeam?team_id=${tid}`).then(res=>{
+        if(res.code == 1){
+
+          this.$dialog({title:'删除成功'});
+          let index = this.listGro.findIndex(ele=>ele.team_id == tid);
+          this.listGro.splice(index,1);
+        }else{
+            this.$dialog({title:'你的小组内还有成员'})
+        } 
+      });
     }
   }
 };
 </script>
-<style lang='scss'>
+<style lang='scss' scoped>
 .GroupList {
   width: 100%;
   height: 100%;
@@ -128,9 +153,12 @@ export default {
       margin-bottom: 10px;
       .leftGroup {
         margin-left: 20px;
-        width: 40px;
+        width: 13%;
         font-size: 14px;
-        b {
+        overflow: hidden;
+        text-overflow:ellipsis;
+        white-space: nowrap;
+        b{
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -142,6 +170,7 @@ export default {
         display: flex;
         justify-content: flex-end;
         align-items: center;
+        overflow: hidden;
         .el-slider {
           width: 50%;
           margin-right: 20px;
@@ -149,6 +178,7 @@ export default {
         span {
           width: 50px;
           height: 100%;
+          font-size: .18rem;
           background: #ccc;
           display: flex;
           align-items: center;
@@ -163,19 +193,7 @@ export default {
       }
     }
   }
-  footer {
-    width: 100%;
-    height: 40px;
-    display: flex;
-    flex-direction: column;
-    .el-input {
-      input {
-        outline: none;
-        border: none;
-        text-align: center;
-      }
-    }
-  }
+  
 }
 </style>
 

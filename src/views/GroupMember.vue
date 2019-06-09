@@ -1,30 +1,35 @@
 <template>
   <div class="GroupList">
-    <HeadTit :tit="tit"></HeadTit>
+     <div class="header">
+        任务列表
+        <span class="span_col" @click="goGit">
+          <a target="_blank" href="https://www.baidu.com/" >查看代码</a>
+        </span>
+    </div>
     <section>
       <div
         class="GroupContent"
         v-for="(item,index) in memList"
         :key="item.mid"
         :data-index="index"
-        @click="taskList(item.mid,item.team_id)"
+        @click="taskList(item.member_id,item.team_id,item.identity)"
       >
         <dl class="leftGroup">
           <dt></dt>
           <dd>
-            <h3>{{item.member_name}}</h3>
+            <span>{{item.member_name}}</span>
             <p>{{item.identity}}</p>
           </dd>
         </dl>
         <p class="rightGroup">
-          <b @click.stop="delMem(item.mid)">删除</b>
+          <span @click.stop="delMem(item.member_id)">删除</span>
           <i class="el-icon-arrow-right"></i>
         </p>
       </div>
       <Dialog v-show="flag">
         <!-- v-if v-show -->
 
-        <h3>添加成员</h3>
+        <spam>添加成员</spam>
         <div class="input">
           <input type="text" placeholder="请输入姓名" v-model="memName">
           <el-radio class="radio" :disabled="radioFlag" v-model="radio" label="1">组长</el-radio>
@@ -71,12 +76,14 @@ export default {
     this.getMem();
   },
   methods: {
+    goGit(){
+
+    },
     showDialog(val) {
       this.flag = !val;
     },
     createMem() {
       this.flag = !this.flag;
-      console.log(this.radio)
       if (this.memName) {
         let query = new URLSearchParams();
         query.append("member_name", this.memName);
@@ -90,11 +97,20 @@ export default {
           body: query.toString()
         })
           .then(res => res.json())
-        this.getMem();
-        this.memName = "";
-        this.radio = "1";
+          .then(res=>{
+            if(res.code == 1){
+               this.getMem();
+            }else{
+
+            }
+           
+          })
+        
+        // this.memName = "";
+        // this.radio = "1";
       } else {
-        alert("姓名不能为空");
+       
+        this.$dialog({title:'姓名不能为空'})
       }
     },
     getMem() {
@@ -110,47 +126,74 @@ export default {
             this.radioFlag = false;
           }
           this.memList = res.result.map(item => {
-            //  item.identity=res.result[manger].identity.splice(manger,1,2)
-            if (item.identity === 0) {
-              item.identity = "老师";
+        
+            if (item.identity === 2) {
+              item.identity = "组员";
             } else if (item.identity === 1) {
               item.identity = "组长";
-            }else{
-              item.identity = "组员";
             }
             return item;
           });
         });
     },
     delMem(mid) {
-      // this.$ajax
-      //   .get("/deleteMember", {
-      //     params: {
-      //       mid
-      //     }
-      //   })
       fetch(`/deleteMember?mid=${mid}`)
         .then(res => res.json())
         .then(res => {
-          console.log(res);
+
+          if(res.code == 1){
+            this.$dialog({title:'删除成功'})
+           
+            let index = this.memList.findIndex(ele=>ele.member_id == mid);
+            this.memList.splice(index,1);
+          }else{
+            this.$dialog({title:'你还有任务没有清除'})
+          }
+
         });
-      this.getMem();
+    
     },
-    taskList(mid, tid, pid) {
+    taskList(mid, tid,identity) {
       this.$router.push(
-        `/taskList?mid=${mid}&team_id=${tid}&pid=${this.$route.query.pid}`
+        `/taskList?member_id=${mid}&team_id=${tid}&project_id=${this.$route.query.project_id}&identity=${identity=='组长'?1:2}`
       );
     }
   }
 };
 </script>
-<style lang='scss'>
+<style lang='scss' scoped>
 .GroupList {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   background: #f2f1f1;
+   .header{
+    width: 100%;
+    height: 46px;
+    line-height: 46px;
+    font-size: .26rem;
+    font-weight: bold;
+    text-align: center;
+    position: relative;
+    background: #fff;
+    &>.span_col{
+        position: absolute;
+        top: 7px;
+        right: 20px;
+        display: inline-block;
+        width: auto;
+        padding: 0 5px;
+        height: 30px;
+        line-height: 30px;
+        font-weight: normal;
+        font-size: .17rem;
+        border-radius: 2px;
+        background: #eee;
+        color: #666;
+        border: 1px solid #ccc;
+      }
+  }
   section {
     flex: 1;
     width: 100%;
@@ -170,6 +213,7 @@ export default {
         margin-left: 20px;
         display: flex;
         align-items: center;
+      
         dt {
           width: 40px;
           height: 40px;
@@ -183,29 +227,23 @@ export default {
         }
         dd {
           flex-shrink: 0;
+          font-size: .22rem;
           p {
-            font-size: 12px;
+            font-size: .16rem;
             color: #ccc;
           }
         }
       }
       .rightGroup {
-        height: 45px;
-        flex: 1;
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        .el-slider {
-          width: 50%;
-          margin-right: 20px;
-        }
-        span {
-          width: 50px;
-          height: 100%;
-          background: #ccc;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        width: 80px;
+        height: 100%;
+        flex: 5;
+        padding-right: 10px;
+        font-size: .23rem;
+        text-align: right;
+        line-height: 45px;
+        &>span{
+          padding: 0 10px;
         }
       }
     }

@@ -1,6 +1,9 @@
 <template>
   <div class="GroupList">
-    <HeadTit :tit="tit"></HeadTit>
+    <div class="header">
+        任务列表
+        <span class="span_col" v-show="isShow" @click="goTaskList"></span>
+    </div>
     <section>
       <Process :step="step"></Process>
       <ul class="navList">
@@ -11,49 +14,27 @@
           @click="changeNav(index)"
         >{{item}}</li>
       </ul>
-      <div class="content" v-if="ind===0">
-        <div v-for="(item,index) in taskList" :key="index" :data-index="index">
-          <div class="left">
-            <p class="leftTit">{{item.task_name}}</p>
-            <p class="leftList">
-              <span @click="beginTodo(index)">开始</span>
-              <span @click="delTask(item.tid)">删除</span>
-              <span>创建时间</span>
+      <ul class="uls">
+        <li class="lis" v-for="(item) in taskList" :key="item.tid">
+            <p class="tasks">
+                 <span>{{item.task_name}}</span>
             </p>
-          </div>
-          <div class="right" @click="setTaskName(item.task_name)">修改</div>
-        </div>
-      </div>
-      <div class="content" v-if="ind===1">
-        <div v-for="(item,index) in taskList" :key="index" :data-index="index">
-          <div class="left">
-            <p class="leftTit">{{item.task_name}}</p>
-            <p class="leftList">
-              <span>doing</span>
-              <span>完成</span>
-              <span>审核人</span>
+            <p :style="{'display':type==2?'none':'block'}">
+                <span @click="checks(1,item.tid,item.member_id)">{{item.task_status==0?'未开始':'开始'}}</span>|<span @click="checks(2,item.tid,item.member_id)">完成</span>|<span>创建时间</span>
+                 |<span @click="delTask(item.tid)">删除</span>
             </p>
-          </div>
-          <div class="right " :class="index===doingIndex?'doing':''">doing</div>
-        </div>
-      </div>
-      <div class="content" v-if="ind===2">
-        <div v-for="(item,index) in taskList" :key="index" :data-index="index">
-          <div class="left">
-            <p class="leftTit">{{item.task_name}}</p>
-            <p class="leftList">
-              <span>开始</span>
-              <span>完成</span>
-              <span>确认人</span>
+            <span class="alter" :style="{'display':type==2?'none':'block'}" @click="updates">修改</span>
+           
+            <p class="confirm" :style="{'display':type==2?'block':'none'}">
+                <span>创建时间</span>|<span>{{item.task_checked?'已确认':'未确认'}}</span>
+                |<span @click="delTask(item.tid)">删除</span>
             </p>
-          </div>
-          <div class="right">确认</div>
-        </div>
-      </div>
-      <Dialog v-show="flag">
-        <!-- v-if v-show -->
-
-        <h3>{{task}}任务</h3>
+            <span class='confirm_alter'  :class="item.task_checked==1?'confirm_alter_col':'' " :style="{'display':type==2?'block':'none'}"></span>
+        </li> 
+    </ul>
+      <Dialog v-show="flag">  
+        
+        <span>{{task}}任务</span>
         <div class="input">
           <input type="text" :placeholder="inpname" v-model="taskName">
         </div>
@@ -69,6 +50,7 @@
       <createBtn :createBtn="createBtn" :flag="flag" @showDialog="showDialog"></createBtn>
     </section>
     <footer>
+      
       <el-input v-model="search" placeholder="搜索"></el-input>
     </footer>
   </div>
@@ -89,24 +71,67 @@ export default {
   },
   data() {
     return {
-      tit: "任务表",
+      isShow:false,
       createBtn: "添加",
       navList: ["todo", "doing", "done"],
       search: "",
       flag: false,
       ind: 0,
+      tid:'',
+      identity:0,
+      type:'',
       task: "",
       taskName: "",
       taskList: [],
+      taskData:[],
+      member_id:'',
       inpname: "请输入任务描述",
       step: "0%",
-      doingIndex:''
+      doingIndex:'',
+      title:'',
     };
   },
   created() {
+    this.member_id = this.$route.query.member_id;
+    this.identity = this.$route.query.identity;
     this.getTask();
+    this.judge();
+  
+
   },
   methods: {
+    checks(status,tid,mid){
+      this.$http.get(`/taskStatus?tid=${tid}&status=${status*1}`).then(res=>{
+        if(res.code == 1){
+          this.getTask();
+          this.$dialog({title:'修改成功'})
+        }
+       
+      })
+    },
+    updates(title){
+      this.isShow = true;
+      this.title = title;
+     
+    },
+    
+     judge(){
+        if(this.identity == 1){
+          this.isShow = true;
+        }else{
+          this.isShow = false;
+        }
+    },
+    //只有组长才可以看到的按钮
+    goTaskList(){
+      this.$router.push({
+        path:'/checkTask',
+        query:{
+          team_id:this.$route.query.team_id,
+          member_id:this.$route.query.member_id
+        }
+      })
+    },
     showDialog(val, task) {
       this.task = task;
       this.flag = !val;
@@ -114,15 +139,19 @@ export default {
     },
     changeNav(ind) {
       this.ind = ind;
+      this.type = ind;
+      this.taskList = this.taskData.filter((ele)=>ele.task_status==ind)
     },
     createTask() {
       if (this.taskName) {
-        this.$ajax.post("/createTask", {
+        this.$http.post("/createTask", {
           task_name: this.taskName,
-          mid: this.$route.query.mid,
+          member_id: this.$route.query.member_id,
           team_id: this.$route.query.team_id,
-          pid: this.$route.query.pid
-        });
+          project_id: this.$route.query.project_id
+        }).then(res=>{
+          console.log(res);
+        })
         this.flag = !this.flag;
         this.getTask();
       } else {
@@ -131,46 +160,82 @@ export default {
       }
     },
     getTask() {
-      this.$ajax.get(`/tasksList?mid=${this.$route.query.mid}`).then(res => {
-        console.log(res);
-        if (res.data.results.length) {
-          this.taskList = res.data.results;
+    
+      this.$http.get(`/tasksList?member_id=${this.member_id}`).then(res => {
+      if (res.results.length) {
+          this.taskData = res.results;
+          this.taskList = this.taskData.filter((ele)=>ele.task_status === 0)
           this.step = "33.33%";
         }else{
-            this.taskList = res.data.results;
+            this.taskList = res.results;
           this.step = "0%";
         }
       });
     },
     delTask(tid) {
-      this.$ajax.get(`/deleteTask?tid=${tid}&mid=${this.$route.query.mid}`);
-      this.getTask();
+      this.tid = tid;
+      this.$http.get(`/deleteTask?tid=${tid}&member_id=${this.member_id}`).then(res=>{
+      
+        if(res.code == 1){
+          this.$dialog({title:'删除成功'});
+          let index = this.taskData.findIndex(ele=>ele.tid ==tid);
+          this.taskData.splice(index,1);
+        }
+      })
     },
-    setTaskName(name) {
+    setTaskName(name,tid) {
       this.flag = true;
+      this.tid = tid;
       this.task = "修改";
       this.inpname = name;
     },
     changeTask() {
-      alert("端口开发中");
+      
+      this.$http.post('/changeTask',{
+          task_name:this.taskName,
+          tid:this.tid
+      }).then(res=>{
+        
+        if(res.code == 1){
+          this.$dialog({title:'修改成功'});
+          this.getTask();
+        }else{
+          this.$dialog({title:'修改失败'});
+        }
+      })
       this.flag = false;
-    },
-    beginTodo(doingIndex) {
-      console.log(doingIndex)
-      this.doingIndex=doingIndex;
-      this.step = "66.66%";
-      this.ind = 1;
     }
   }
 };
 </script>
-<style lang='scss'>
+<style lang='scss' scoped>
 .GroupList {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   background: #f2f1f1;
+  .header{
+    width: 100%;
+    height: 46px;
+    line-height: 46px;
+    font-size: .26rem;
+    font-weight: bold;
+    text-align: center;
+    position: relative;
+    background: #fff;
+    &>.span_col{
+        position: absolute;
+        top: 7px;
+        right: 20px;
+        display: inline-block;
+        width: 45px;
+        height: 35px;
+        border-radius: 8px;
+        background: #eee;
+        border: 1px solid #ccc;
+      }
+  }
   section {
     flex: 1;
     width: 100%;
@@ -186,9 +251,10 @@ export default {
       margin-top: 15px;
       li {
         flex: 1;
-        height: 30px;
+        height: .4rem;
         text-align: center;
-        line-height: 30px;
+        line-height: .4rem;
+        font-size: .2rem;
         background: #fff;
         border-right: 2px solid #0076ff;
       }
@@ -217,10 +283,10 @@ export default {
         margin-bottom: 10px;
         .left {
           .leftTit {
-            font-size: 14px;
+            font-size: .18rem;
           }
           .leftList {
-            font-size: 12px;
+            font-size: .15rem;
             color: #ccc;
             margin-top: 15px;
             span {
@@ -239,7 +305,7 @@ export default {
           background: #eee;
           text-align: center;
           line-height: 22px;
-          font-size: 12px;
+          font-size: .16rem;
         }
         .doing{
           background: skyblue;
@@ -262,5 +328,75 @@ export default {
     }
   }
 }
-</style>
+.uls{
+    width: 100%;
+    margin-top: 15px;
+  
+}
+.lis{
+    width: 100%;
+    height: 1rem;
+    position: relative;
+    background: #fff;
+    border-bottom: 2px solid #eee;
+    &>p{
+        width: 100%;
+        height: .45rem;
+        line-height: .45rem;
+        padding-left: 10px;
+    }
+   
+    &>p:nth-child(2),.confirm{
+        font-size: .18rem;
+        color: #666;
+        span{
+            padding: 0 5px;
+            color: #666;
+        }
+    }
+}
 
+.tasks{
+    font-size: .25rem;
+    font-weight: bold;
+    
+}
+.confirm_alter{
+    position: absolute;
+    right: 10px;
+    top: 20px;
+    width: .3rem;
+    height: .3rem;
+    background: #ccc;
+    border-radius: 50%;
+}
+.confirm_alter_col{
+  background: greenyellow;
+}
+.confirm_del{
+    position: absolute;
+    right: 10px;
+    top: 50px;
+    width: .7rem;
+    text-align: center;
+    line-height: 28px;
+    height: .3rem;
+    background: pink;
+    font-size: .17rem;
+    color: #666;
+
+}
+.alter{
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    width: 60px;
+    text-align: center;
+    line-height: 28px;
+    height: 28px;
+    background: #eee;
+    font-size: .17rem;
+    color: #666;
+    font-weight: normal;
+}
+</style>

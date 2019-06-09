@@ -18,25 +18,23 @@ export default {
 };
 </script>
 <style lang="scss">
-@import url("./scss/common.scss");
 *{
   margin: 0 auto;
   padding: 0;
   list-style: none;
   box-sizing: border-box;
+  text-decoration: none;
 }
 body,html{
   width: 100%;
   height: 100%;
 }
-#app {
+#app{
   width: 100%;
   height: 100%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  // overflow: hidden;
-  // text-overflow: ellipsis;
-  // white-space: nowrap;
+  .inp_err{
+    border: 1px solid red;
+  }
 }
+
 </style>

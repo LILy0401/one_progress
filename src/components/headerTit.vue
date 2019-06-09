@@ -1,24 +1,38 @@
 <template>
   <header>
-    <h3>{{tit}}</h3>
+    <span>{{tit}}</span>
   </header>
 </template>
 <script>
 export default {
   name: "HeadTit",
-  props: ["tit"]
+  props: ["tit"],
+  data(){
+    return{
+      
+    }
+  },
+  created(){
+    
+  },
+  methods:{
+   
+  }
 };
 </script>
 <style lang="scss">
 header {
   width: 100%;
-  height: 46px;
+  height: 1rem;
   text-align: center;
-  background: #fff;
-  h3 {
+  background: rgb(165, 208, 248);
+  span {
+    display: block;
+    font-size: .35rem;
     text-align: center;
-    line-height: 45px;
+    line-height: 1rem;
     border-bottom: 1px solid #ccc;
   }
+
 }
 </style>

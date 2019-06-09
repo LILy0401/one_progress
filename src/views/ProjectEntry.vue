@@ -1,6 +1,6 @@
 <template>
   <div id="nav">
-    <HeadTit :tit="tit"></HeadTit>
+    <HeadTit :tit="`项目列表--`"></HeadTit>
     <section>
       <div
         class="project"
@@ -8,7 +8,7 @@
         :key="index"
         @click="GroupList(item.project_id)"
       >
-        <h4>{{item.project_name}}</h4>
+        <span>{{item.project_name}}</span>
         <div class="projects">
           <p>{{item.project_discription}}</p>
           <div class="mananer">
@@ -18,11 +18,12 @@
           </div>
         </div>
       </div>
-      <createBtn :createBtn="createBtn" :flag="flag" @showDialog="showDialog"></createBtn>
-      <Dialog v-show="flag">
-        <!-- v-if v-show -->
 
-        <h3>创建项目</h3>
+      <createBtn :createBtn="createBtn" :flag="flag" @showDialog="showDialog" v-show="createBtnisShow"></createBtn>
+     
+      <Dialog v-show="flag">
+    
+        <span>创建项目</span>
         <div class="input">
           <input type="text" placeholder="请输入项目名称" v-model="proName">
           <textarea name="" id="" cols="30" rows="10" placeholder="添加项目介绍" v-model="proMS"></textarea>
@@ -33,80 +34,44 @@
         </div>
       </Dialog>
     </section>
-    <footer>
-      <el-select v-model="cid" placeholder="选择班级" @change="chooseClass()">
-        <el-option
-          v-for="item in options2"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value"
-        >
-          <span style="float: left">{{ item.label }}</span>
-          <span style="float: right; color: #8492a6; font-size: 13px">{{ item.value }}</span>
-        </el-option>
-      </el-select>
-    </footer>
   </div>
 </template>
 <script>
 import HeadTit from "../components/headerTit.vue";
 import createBtn from "../components/createBtn.vue";
 import Dialog from "../components/dialog.vue";
+import { constants } from 'crypto';
+import store from '../store'
 
 export default {
-  name: "ProjectEntry",
   data() {
     return {
-      tit: "项目列表-----班级",
+      createBtnisShow:false,
+      tit: "",
       list: [],
-      options2: [
-        {
-          value: "1606A",
-          label: "1606A"
-        },
-        {
-          value: "1606B",
-          label: "1606B"
-        },
-        {
-          value: "1607A",
-          label: "1607A"
-        },
-        {
-          value: "1607B",
-          label: "1607B"
-        },
-        {
-          value: "1608A",
-          label: "1608A"
-        },
-        {
-          value: "1608B",
-          label: "1608B"
-        },
-        {
-          value: "1609A",
-          label: "1609A"
-        },
-        {
-          value: "1609B",
-          label: "1609B"
-        },
-        {
-          value: "1610A",
-          label: "1610A"
-        },
-        {
-          value: "1610B",
-          label: "1610B"
-        }
-      ],
-      cid: "1610A",
+      onlyList:[],
+      cid: "",
       createBtn: "创建项目",
       flag: false,
       proName: "",
-      proMS: ""
+      proMS: "",
+      checkoutList:[]
     };
+  },
+  computed:{
+    
+    getclassList(){
+        // console.log(this.cid);
+        // console.log(store.state.data)
+        let arr=store.state.data.filter((ele)=>{
+          
+          return ele.cid == this.cid
+        })
+        console.log(arr);
+        // this.tit = arr[0].class_name;
+        // console.log(this.tit);
+        return arr;
+    }
   },
   components: {
     HeadTit,
@@ -114,66 +79,167 @@ export default {
     Dialog
   },
   created() {
+    this.cid = this.$route.query.cid;
+    // this.tit = this.$route.query.class_name;
+    // this.getclassList;
+    this.getType();
     this.projectList();
+    
   },
   methods: {
+    getType(){
+      let type = window.localStorage.getItem('type');
+      if(type === 'teacher'){
+        this.createBtnisShow = true;
+      }else{
+        this.createBtnisShow = false;
+      }
+    },
     showDialog(val) {
       this.flag = !val;
     },
     projectList() {
-      this.$ajax.get(`/projectList?cid=${this.cid}`).then(res => {
-        console.log(res);
-        this.list = res.data.results.map(item => {
-          item.create_time = new Date(item.create_time * 1).toLocaleString();
+      console.log(this.cid ,',-------项目中')
+      this.$http.get(`/projectList?cid=${this.cid}`).then(res => {
+        
+        this.list = res.results.map(item => {
+          let data = new Date(item.create_time)
+          item.create_time = `${data.getFullYear()}年-${data.getMonth()+1}月-${data.getDate()}日`;
           return item;
         });
       });
     },
     createPro() {
+    
       this.flag = !this.flag;
       if (this.proName && this.proMS) {
-        console.log(this.proMS)
-        this.$ajax
+        
+        this.$http
           .post("/createProject", {
             project_name: this.proName,
             project_discription: this.proMS,
             cid: this.cid,
-            class_name: this.cid
+            class_name: this.tit
           })
           .then(res => {
             console.log(res);
+            if(res.code == 1){
+               this.$dialog({title:'删除成功'})
+            }else{
+              this.$dialog({title:'删除失败'})
+            }
           });
         this.projectList();
         this.proName = "";
         this.proMS = "";
-        this.cid = "1610A";
       } else {
-        alert("请检查项目名称及项目描述是否填写");
+        this.$dialog({title:'请检查项目名称及项目描述是否填写'})
+        
       }
     },
     chooseClass() {
       this.projectList();
     },
     GroupList(pid) {
-      this.$router.push(`/GroupList?pid=${pid}`);
-      // this.$router.push({
-      //   path:'/GroupList',
-      //   query:{
-      //     pid
-      //   }
-      // })
+     
+      this.$router.push(`/GroupList?project_id=${pid}`);
     },
     delPro(pid){
-      // this.$ajax.get(`/deleteProject?project_id=${pid}`).then(res=>{
-      //     console.log(res)
-      //   })
-      alert('删除'+pid+'正在开发中')
+
+      this.$http.get(`/deleteProject?project_id=${pid}`).then(res=>{
+      
+          if(res.code == 1){
+            this.$dialog({title:'删除成功'})
+            let index = this.list.findIndex(ele=>ele.project_id == pid);
+           
+            this.list.splice(index,1);
+          }else{
+             this.$dialog({title:'删除失败'})
+          }
+      })
+      
     }
   }
 };
 </script>
-<style lang="scss">
-#nav {
+<style lang="scss" scoped>
+@media screen and (min-width:320px){
+    #nav {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #eee;
+  section {
+    width: 95%;
+    flex: 1;
+    display: flex;
+    padding: 0 2.5%;
+    overflow-y: auto;
+    .project {
+  width: 33%;
+  height: 100px;
+  margin-top: 10px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  border-radius: 5px;
+  flex-shrink: 0;
+  &>span {
+    display: inline-block;
+    width: 100%;
+    height: 25px;
+    background: rgb(165, 208, 248);
+    line-height: 25px;
+    border-bottom: 1px solid #95c3ff;
+    font-size:.22rem;
+    padding-left: 10px;
+  }
+  .projects {
+    width: 98%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-top: 5px;
+    padding-left: 5px;
+    p {
+      font-size: .19rem;
+      color: #ccc;
+      width: 95%;
+    }
+    .mananer {
+      width: 100%;
+      height: 35px;
+      line-height: 35px;
+      display: flex;
+      margin-top: 8px;
+      span{
+      
+        text-align: left;
+        font-size: .16rem;
+        color: #bbb;
+      }
+      span:nth-child(1){
+        flex: 7;
+        width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+}
+  }
+
+}
+.btn{
+  p{
+    font-size: .2rem;
+  }
+}
+}
+@media screen and (max-width:420px){
+  #nav {
   width: 100%;
   height: 100%;
   display: flex;
@@ -188,19 +254,22 @@ export default {
     overflow-y: auto;
     .project {
   width: 100%;
-  height: 100px;
+  height: 1.8rem;
   margin-top: 10px;
   background: #fff;
   display: flex;
   flex-direction: column;
   border-radius: 5px;
   flex-shrink: 0;
-  h4 {
+  &>span {
+    display: inline-block;
+    width: 100%;
     height: 25px;
+    background: rgb(165, 208, 248);
     line-height: 25px;
-    border-bottom: 1px solid #ccc;
-    font-size: 14px;
-    padding-left: 5px;
+    border-bottom: 1px solid #95c3ff;
+    font-size:.22rem;
+    padding-left: 10px;
   }
   .projects {
     width: 98%;
@@ -216,14 +285,18 @@ export default {
     }
     .mananer {
       width: 100%;
+      height: 35px;
+      line-height: 35px;
       display: flex;
       margin-top: 8px;
-      span {
-        margin-right: 5px;
+      span{
+      
+        text-align: left;
         font-size: 12px;
-        color: #ccc;
+        color: #bbb;
       }
       span:nth-child(1){
+        flex: 7;
         width: 140px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -233,23 +306,8 @@ export default {
   }
 }
   }
-  footer {
-    width: 100%;
-    height: 40px;
-    display: flex;
-    flex-direction: column;
-    .el-select {
-      .el-input {
-        input {
-          outline: none;
-          border: none;
-          text-align: center;
-        }
-        ::-webkit-input-placeholder {
-          color: #000;
-        }
-      }
-    }
-  }
+
 }
+}
+
 </style>
